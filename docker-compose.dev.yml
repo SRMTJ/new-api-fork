@@ -20,7 +20,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     image: new-api-dev:local
-    container_name: new-api-dev
+    container_name: new-api-fork-dev
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -41,14 +41,16 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: new-api-dev-redis
+    container_name: new-api-fork-dev-redis
     restart: unless-stopped
+    ports:
+      - "26379:6379"
     networks:
       - dev-network
 
   postgres:
     image: postgres:15-alpine
-    container_name: new-api-dev-pg
+    container_name: new-api-fork-dev-pg
     restart: unless-stopped
     environment:
       POSTGRES_USER: root
@@ -56,6 +58,8 @@ services:
       POSTGRES_DB: new-api
     volumes:
       - dev_pg_data:/var/lib/postgresql/data
+    ports:
+      - "25432:5432"
     networks:
       - dev-network
     healthcheck:

@@ -17,7 +17,7 @@ version: '3.4' # For compatibility with older Docker versions
 services:
   new-api:
     image: calciumion/new-api:latest
-    container_name: new-api
+    container_name: new-api-fork
     restart: always
     command: --log-dir /app/logs
     ports:
@@ -54,15 +54,17 @@ services:
 
   redis:
     image: redis:latest
-    container_name: redis
+    container_name: new-api-fork-redis
     restart: always
     command: ["redis-server", "--requirepass", "123456"]  # ⚠️ IMPORTANT: Change this password in production!
+    ports:
+      - "16379:6379"
     networks:
       - new-api-network
 
   postgres:
     image: postgres:15
-    container_name: postgres
+    container_name: new-api-fork-postgres
     restart: always
     environment:
       POSTGRES_USER: root
@@ -70,6 +72,8 @@ services:
       POSTGRES_DB: new-api
     volumes:
       - pg_data:/var/lib/postgresql/data
+    ports:
+      - "15432:5432"
     networks:
       - new-api-network
 #    ports:
