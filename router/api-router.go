@@ -67,6 +67,8 @@ func SetApiRouter(router *gin.Engine) {
 		lzRoute.Use(middleware.AdminAuth())
 		{
 			lzRoute.POST("/enterprise/provision", controller.ProvisionLZEnterprise)
+			lzRoute.POST("/subscription/epay/pay", middleware.CriticalRateLimit(), controller.LZSubscriptionRequestEpay)
+			lzRoute.GET("/subscription/orders/:tradeNo", controller.LZSubscriptionGetOrder)
 		}
 
 		userRoute := apiRouter.Group("/user")
