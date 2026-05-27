@@ -1,4 +1,6 @@
 # New-API Docker Compose Configuration
+# Deprecated for local LZClaw workspace dependency startup.
+# Prefer D:\SRMTJ\LZClaw\LZDocker\docker-compose.yml for shared PostgreSQL/Redis.
 # 
 # Quick Start:
 #   1. docker-compose up -d

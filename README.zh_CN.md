@@ -152,6 +152,28 @@ docker run --name new-api -d --restart always \
 
 🎉 部署完成后，访问 `http://localhost:3000` 即可使用！
 
+### LZClaw 工作区本地开发（统一依赖）
+
+在 `D:\SRMTJ\LZClaw` 工作区内，默认使用 `LZDocker` 作为依赖入口，不再单独启动本仓库内的 PostgreSQL/Redis 容器：
+
+```bash
+cd ../LZDocker
+docker compose --env-file .env -f docker-compose.yml up -d
+```
+
+然后启动 `new-api-fork`：
+
+```bash
+cd ../new-api-fork
+go run main.go
+```
+
+对应连接参数请使用：
+
+- `SQL_DSN=postgresql://postgres.lzserver:<POSTGRES_PASSWORD>@127.0.0.1:55432/postgres?sslmode=disable`
+- `LOG_SQL_DSN=postgresql://postgres.lzserver:<POSTGRES_PASSWORD>@127.0.0.1:55432/postgres?sslmode=disable`
+- `REDIS_CONN_STRING=redis://:<REDIS_PASSWORD>@127.0.0.1:16379/0`
+
 > [!WARNING]
 > 将本项目作为面向公众的生成式 AI 服务或 API 转售服务运营时，使用者应先完成备案、内容安全、实名、日志留存、税务、支付和上游授权等合规义务。
 
