@@ -60,7 +60,7 @@ services:
     restart: always
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-change-me-redis-password}"]  # ⚠️ IMPORTANT: Change this password in production!
     ports:
-      - "16379:6379"
+      - "26379:6379"
     networks:
       - new-api-network
 
@@ -75,7 +75,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
-      - "15432:5432"
+      - "25432:5432"
     networks:
       - new-api-network
 #    ports:

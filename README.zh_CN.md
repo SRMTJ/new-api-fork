@@ -170,12 +170,34 @@ go run main.go
 
 对应连接参数请使用：
 
-- `SQL_DSN=postgresql://postgres.lzserver:<POSTGRES_PASSWORD>@127.0.0.1:55432/postgres?sslmode=disable`
-- `LOG_SQL_DSN=postgresql://postgres.lzserver:<POSTGRES_PASSWORD>@127.0.0.1:55432/postgres?sslmode=disable`
-- `REDIS_CONN_STRING=redis://:<REDIS_PASSWORD>@127.0.0.1:16379/0`
+- `SQL_DSN=postgresql://postgres.lzserver:<POSTGRES_PASSWORD>@127.0.0.1:25432/postgres?sslmode=disable`
+- `LOG_SQL_DSN=postgresql://postgres.lzserver:<POSTGRES_PASSWORD>@127.0.0.1:25432/postgres?sslmode=disable`
+- `REDIS_CONN_STRING=redis://:<REDIS_PASSWORD>@127.0.0.1:26379/0`
 
 > [!WARNING]
 > 将本项目作为面向公众的生成式 AI 服务或 API 转售服务运营时，使用者应先完成备案、内容安全、实名、日志留存、税务、支付和上游授权等合规义务。
+
+### Linux 发布包
+
+如果你是在当前 Windows 工作机上构建、再上传到 Linux 服务器，可以直接执行：
+
+```powershell
+.\package-linux.ps1
+```
+
+默认会输出 `linux/amd64` 的 ZIP 包到 `releases/`。如需 `arm64`：
+
+```powershell
+.\package-linux.ps1 -GoArch arm64
+```
+
+脚本会自动：
+
+- 构建 `web/default` 和 `web/classic` 前端
+- 交叉编译 Linux 二进制 `new-api`
+- 打包当前 `.env`（如果存在）
+- 附带 `new-api.service`
+- 创建空的 `data/`、`logs/` 目录，方便上传后直接部署
 
 📖 更多部署方式请参考 [部署指南](https://docs.newapi.pro/zh/docs/installation)
 
