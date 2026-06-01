@@ -9,6 +9,7 @@ import (
 
 	"github.com/Calcium-Ion/go-epay/epay"
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -19,6 +20,28 @@ type LZSubscriptionEpayPayRequest struct {
 	UserID        int    `json:"userId"`
 	PlanID        int    `json:"planId"`
 	PaymentMethod string `json:"paymentMethod"`
+	ReturnURL     string `json:"returnUrl"`
+}
+
+func isAllowedSubscriptionReturnURL(raw string) bool {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return false
+	}
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return false
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return false
+	}
+	if strings.TrimSpace(parsed.Hostname()) == "" {
+		return false
+	}
+	if len(constant.TrustedRedirectDomains) == 0 {
+		return true
+	}
+	return common.ValidateRedirectURL(value) == nil
 }
 
 func LZSubscriptionRequestEpay(c *gin.Context) {
@@ -67,6 +90,13 @@ func LZSubscriptionRequestEpay(c *gin.Context) {
 			return
 		}
 	}
+	customReturnURL := strings.TrimSpace(req.ReturnURL)
+	if customReturnURL != "" {
+		if !isAllowedSubscriptionReturnURL(customReturnURL) {
+			common.ApiErrorMsg(c, "支付成功重定向URL不在可信任域名列表中")
+			return
+		}
+	}
 
 	callBackAddress := service.GetCallbackAddress()
 	returnURL, err := url.Parse(callBackAddress + "/api/subscription/epay/return")
@@ -98,6 +128,9 @@ func LZSubscriptionRequestEpay(c *gin.Context) {
 		PaymentProvider: model.PaymentProviderEpay,
 		CreateTime:      time.Now().Unix(),
 		Status:          common.TopUpStatusPending,
+		ProviderPayload: common.GetJsonString(map[string]string{
+			"return_url": customReturnURL,
+		}),
 	}
 	if err := order.Insert(); err != nil {
 		common.ApiErrorMsg(c, "创建订单失败")
