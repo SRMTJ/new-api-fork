@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/Calcium-Ion/go-epay/epay"
@@ -20,55 +19,6 @@ import (
 type SubscriptionEpayPayRequest struct {
 	PlanId        int    `json:"plan_id"`
 	PaymentMethod string `json:"payment_method"`
-}
-
-type subscriptionOrderReturnPayload struct {
-	ReturnURL string `json:"return_url"`
-}
-
-func resolveSubscriptionCustomReturnURL(tradeNo string) string {
-	tradeNo = strings.TrimSpace(tradeNo)
-	if tradeNo == "" {
-		return ""
-	}
-	order := model.GetSubscriptionOrderByTradeNo(tradeNo)
-	if order == nil || strings.TrimSpace(order.ProviderPayload) == "" {
-		return ""
-	}
-	var payload subscriptionOrderReturnPayload
-	if err := common.Unmarshal([]byte(order.ProviderPayload), &payload); err != nil {
-		return ""
-	}
-	customReturnURL := strings.TrimSpace(payload.ReturnURL)
-	if customReturnURL == "" {
-		return ""
-	}
-	if !isAllowedSubscriptionReturnURL(customReturnURL) {
-		return ""
-	}
-	return customReturnURL
-}
-
-func buildCustomPaymentReturnURL(raw string, payStatus string, tradeNo string) string {
-	parsed, err := url.Parse(raw)
-	if err != nil {
-		return raw
-	}
-	query := parsed.Query()
-	query.Set("pay", payStatus)
-	if strings.TrimSpace(tradeNo) != "" {
-		query.Set("tradeNo", tradeNo)
-	}
-	parsed.RawQuery = query.Encode()
-	return parsed.String()
-}
-
-func redirectSubscriptionPaymentResult(c *gin.Context, customReturnURL string, payStatus string, tradeNo string) {
-	target := paymentReturnPath("/console/topup?pay=" + payStatus)
-	if strings.TrimSpace(customReturnURL) != "" {
-		target = buildCustomPaymentReturnURL(customReturnURL, payStatus, tradeNo)
-	}
-	c.Redirect(http.StatusFound, target)
 }
 
 func SubscriptionRequestEpay(c *gin.Context) {
@@ -242,30 +192,29 @@ func SubscriptionEpayReturn(c *gin.Context) {
 	}
 
 	if len(params) == 0 {
-		redirectSubscriptionPaymentResult(c, "", "fail", "")
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?pay=fail"))
 		return
 	}
 
 	client := GetEpayClient()
 	if client == nil {
-		redirectSubscriptionPaymentResult(c, "", "fail", "")
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?pay=fail"))
 		return
 	}
 	verifyInfo, err := client.Verify(params)
 	if err != nil || !verifyInfo.VerifyStatus {
-		redirectSubscriptionPaymentResult(c, "", "fail", "")
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?pay=fail"))
 		return
 	}
-	customReturnURL := resolveSubscriptionCustomReturnURL(verifyInfo.ServiceTradeNo)
 	if verifyInfo.TradeStatus == epay.StatusTradeSuccess {
 		LockOrder(verifyInfo.ServiceTradeNo)
 		defer UnlockOrder(verifyInfo.ServiceTradeNo)
 		if err := model.CompleteSubscriptionOrder(verifyInfo.ServiceTradeNo, common.GetJsonString(verifyInfo), model.PaymentProviderEpay, verifyInfo.Type); err != nil {
-			redirectSubscriptionPaymentResult(c, customReturnURL, "fail", verifyInfo.ServiceTradeNo)
+			c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?pay=fail"))
 			return
 		}
-		redirectSubscriptionPaymentResult(c, customReturnURL, "success", verifyInfo.ServiceTradeNo)
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?pay=success"))
 		return
 	}
-	redirectSubscriptionPaymentResult(c, customReturnURL, "pending", verifyInfo.ServiceTradeNo)
+	c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?pay=pending"))
 }
